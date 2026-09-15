@@ -1,8 +1,8 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { supabase } from '../lib/supabase';
+import { LocalAuthService, LocalUser } from '../lib/localAuth';
 
 interface AuthContextType {
-  user: any;
+  user: LocalUser | null;
   showAuthModal: boolean;
   setShowAuthModal: (show: boolean) => void;
   handleAuthSuccess: () => void;
@@ -12,18 +12,17 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<LocalUser | null>(null);
   const [showAuthModal, setShowAuthModal] = useState(false);
 
   useEffect(() => {
-    // Check current auth status
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null);
-    });
+    // Check current auth status from localStorage
+    const current = LocalAuthService.getCurrentUser();
+    setUser(current);
 
     // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_, session) => {
-      setUser(session?.user ?? null);
+    const subscription = LocalAuthService.onAuthStateChange((updatedUser) => {
+      setUser(updatedUser);
     });
 
     return () => subscription.unsubscribe();
@@ -35,8 +34,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = async () => {
     try {
-      const { error } = await supabase.auth.signOut();
-      if (error) throw error;
+      LocalAuthService.signOut();
       setUser(null);
       setShowAuthModal(false);
     } catch (error) {

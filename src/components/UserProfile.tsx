@@ -1,78 +1,29 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, User, Phone, Mail, FileText, Clock, CheckCircle, XCircle, Loader2 } from 'lucide-react';
-import { supabase } from '../lib/supabase';
+import { X, User, Phone, Mail, FileText, Clock, CheckCircle, XCircle } from 'lucide-react';
+import { LocalAuthService, LocalUser, LocalLoanApplication } from '../lib/localAuth';
+import { useAuth } from '../contexts/AuthContext';
 
 interface UserProfileProps {
   isOpen: boolean;
   onClose: () => void;
 }
 
-interface LoanApplication {
-  id: string;
-  loan_amount: number;
-  loan_purpose: string;
-  status: string;
-  created_at: string;
-}
-
-interface UserData {
-  full_name: string;
-  phone_number: string;
-  email: string;
-}
-
 export const UserProfile: React.FC<UserProfileProps> = ({ isOpen, onClose }) => {
-  const [userData, setUserData] = useState<UserData | null>(null);
-  const [loanApplications, setLoanApplications] = useState<LoanApplication[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const { user } = useAuth();
+  const [loanApplications, setLoanApplications] = useState<LocalLoanApplication[]>([]);
 
   useEffect(() => {
-    if (isOpen) {
-      fetchUserData();
+    if (isOpen && user) {
+      const loans = LocalAuthService.getLoans(user.id);
+      setLoanApplications(loans);
     }
-  }, [isOpen]);
-
-  const fetchUserData = async () => {
-    try {
-      setLoading(true);
-      setError('');
-
-      // Get current user
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('No user found');
-
-      // Get user profile
-      const { data: profile, error: profileError } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', user.id)
-        .single();
-
-      if (profileError) throw profileError;
-
-      // Get user's loan applications
-      const { data: loans, error: loansError } = await supabase
-        .from('loan_applications')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false });
-
-      if (loansError) throw loansError;
-
-      setUserData(profile);
-      setLoanApplications(loans || []);
-    } catch (err: any) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
+  }, [isOpen, user]);
 
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'approved':
+      case 'disbursed':
         return 'text-green-500';
       case 'rejected':
         return 'text-red-500';
@@ -86,6 +37,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({ isOpen, onClose }) => 
   const getStatusIcon = (status: string) => {
     switch (status) {
       case 'approved':
+      case 'disbursed':
         return <CheckCircle className="w-5 h-5 text-green-500" />;
       case 'rejected':
         return <XCircle className="w-5 h-5 text-red-500" />;
@@ -95,6 +47,8 @@ export const UserProfile: React.FC<UserProfileProps> = ({ isOpen, onClose }) => 
         return <FileText className="w-5 h-5 text-blue-500" />;
     }
   };
+
+  const userData: LocalUser | null = user ?? null;
 
   return (
     <AnimatePresence>
@@ -125,28 +79,22 @@ export const UserProfile: React.FC<UserProfileProps> = ({ isOpen, onClose }) => 
               </button>
             </div>
 
-            {loading ? (
-              <div className="flex items-center justify-center py-8">
-                <Loader2 className="w-8 h-8 animate-spin text-[#FF6B00]" />
-              </div>
-            ) : error ? (
-              <div className="text-red-500 text-center py-8">
-                {error}
-              </div>
+            {!userData ? (
+              <div className="text-gray-500 text-center py-8">Not signed in</div>
             ) : (
               <div className="space-y-6">
                 <div className="bg-gray-50 rounded-lg p-4 space-y-3">
                   <div className="flex items-center gap-2">
                     <User className="w-5 h-5 text-gray-400" />
-                    <span className="font-medium">{userData?.full_name}</span>
+                    <span className="font-medium">{userData.full_name}</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <Phone className="w-5 h-5 text-gray-400" />
-                    <span>{userData?.phone_number}</span>
+                    <span>{userData.phone_number}</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <Mail className="w-5 h-5 text-gray-400" />
-                    <span>{userData?.email}</span>
+                    <span>{userData.email}</span>
                   </div>
                 </div>
 

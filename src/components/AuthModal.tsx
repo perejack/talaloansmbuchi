@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Loader2, Mail, Lock, User, Phone, LogIn, UserPlus } from 'lucide-react';
-import { supabase } from '../lib/supabase';
+import { LocalAuthService } from '../lib/localAuth';
 import { useNavigate } from 'react-router-dom';
 
 interface AuthModalProps {
@@ -29,49 +29,24 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess
 
     try {
       if (mode === 'signup') {
-        const { data, error: signUpError } = await supabase.auth.signUp({
+        LocalAuthService.signUp({
           email,
           password,
-          options: {
-            data: {
-              full_name: fullName,
-              phone_number: phoneNumber,
-            },
-          },
+          fullName,
+          phoneNumber,
         });
-
-        if (signUpError) throw signUpError;
-
-        // Create user profile
-        const { error: profileError } = await supabase
-          .from('profiles')
-          .insert([
-            {
-              id: data.user?.id,
-              full_name: fullName,
-              phone_number: phoneNumber,
-              email,
-            },
-          ]);
-
-        if (profileError) {
-          console.error('Profile creation error:', profileError);
-          // Continue anyway since the user was created
-        }
       } else {
-        const { error: signInError } = await supabase.auth.signInWithPassword({
+        LocalAuthService.signIn({
           email,
           password,
         });
-
-        if (signInError) throw signInError;
       }
 
       onSuccess();
       onClose();
       navigate('/apply');
     } catch (err: any) {
-      setError(err.message);
+      setError(err.message || 'Authentication error occurred');
     } finally {
       setLoading(false);
     }
