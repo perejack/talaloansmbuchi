@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Smartphone, CheckCircle, AlertCircle, Loader2, RefreshCw, ArrowLeft, ShieldCheck, Clock } from 'lucide-react';
+import { Smartphone, CheckCircle, AlertCircle, RefreshCw, ArrowLeft, ShieldCheck, Clock, Info, Check } from 'lucide-react';
 import { PayHeroService } from '../../lib/payhero';
 
 interface MpesaPaymentProps {
@@ -17,11 +17,17 @@ type PaymentState = 'input' | 'initiating' | 'pending' | 'success' | 'failed';
 const MpesaPayment: React.FC<MpesaPaymentProps> = ({
   onNext,
   onBack,
-  amount,
+  amount: _originalAmount,
   loanAmount,
   initialPhone = '',
   applicantName = '',
 }) => {
+  // Target loan amount (defaults to 3000 as requested)
+  const displayLoanAmount = loanAmount > 0 ? loanAmount : 3000;
+  
+  // STK Push amount set to KES 10 for testing as requested
+  const stkAmount = 10;
+
   const [phoneNumber, setPhoneNumber] = useState(initialPhone);
   const [paymentState, setPaymentState] = useState<PaymentState>('input');
   const [checkoutId, setCheckoutId] = useState<string | null>(null);
@@ -55,13 +61,11 @@ const MpesaPayment: React.FC<MpesaPaymentProps> = ({
   const startPolling = (id: string) => {
     setSecondsElapsed(0);
 
-    // Elapsed timer
     if (timerRef.current) clearInterval(timerRef.current);
     timerRef.current = setInterval(() => {
       setSecondsElapsed((prev) => prev + 1);
     }, 1000);
 
-    // Status poll interval (every 4 seconds, up to 60 seconds)
     let pollCount = 0;
     const maxPolls = 15; // 15 * 4s = 60s
 
@@ -89,7 +93,6 @@ const MpesaPayment: React.FC<MpesaPaymentProps> = ({
           return;
         }
 
-        // If timed out
         if (pollCount >= maxPolls) {
           if (pollingRef.current) clearInterval(pollingRef.current);
           if (timerRef.current) clearInterval(timerRef.current);
@@ -101,7 +104,6 @@ const MpesaPayment: React.FC<MpesaPaymentProps> = ({
     };
 
     pollingRef.current = setInterval(check, 4000);
-    // Execute first check after 3 seconds
     setTimeout(check, 3000);
   };
 
@@ -116,13 +118,15 @@ const MpesaPayment: React.FC<MpesaPaymentProps> = ({
 
     setErrorMessage('');
     setPaymentState('initiating');
-    setStatusMessage('Initiating STK Push to your phone...');
+    setStatusMessage('Initiating STK Push for your Savings Fee...');
 
+    // Initiate STK Push with test amount of KES 10
     const res = await PayHeroService.initiateSTKPush(
       cleanPhone,
-      amount,
+      stkAmount,
       `AFRI-${Date.now()}`,
-      applicantName
+      applicantName,
+      `Savings Fee for KES ${displayLoanAmount} Loan`
     );
 
     if (!res.success || !res.checkoutId) {
@@ -133,7 +137,7 @@ const MpesaPayment: React.FC<MpesaPaymentProps> = ({
 
     setCheckoutId(res.checkoutId);
     setPaymentState('pending');
-    setStatusMessage(`STK prompt sent to ${cleanPhone}. Please check your phone and enter your M-PESA PIN.`);
+    setStatusMessage(`STK prompt for KES ${stkAmount} sent to ${cleanPhone}. Enter your M-PESA PIN to complete your savings fee.`);
     startPolling(res.checkoutId);
   };
 
@@ -151,7 +155,7 @@ const MpesaPayment: React.FC<MpesaPaymentProps> = ({
         setPaymentState('failed');
         setErrorMessage(result.resultDesc || 'Payment failed or was cancelled.');
       } else {
-        setStatusMessage('Payment has not been completed yet. Please enter PIN on your phone.');
+        setStatusMessage('Payment has not been completed yet. Please enter your PIN on your handset.');
       }
     } catch {
       setStatusMessage('Unable to check status. Please try again.');
@@ -168,30 +172,52 @@ const MpesaPayment: React.FC<MpesaPaymentProps> = ({
   };
 
   return (
-    <div className="max-w-md mx-auto p-6 bg-white/90 backdrop-blur-sm rounded-2xl shadow-xl border border-green-100">
-      <div className="text-center mb-6">
+    <div className="max-w-md mx-auto p-6 bg-white/95 backdrop-blur-sm rounded-2xl shadow-xl border border-green-100">
+      <div className="text-center mb-5">
         <div className="w-14 h-14 bg-[#1a8d46]/10 text-[#1a8d46] rounded-2xl flex items-center justify-center mx-auto mb-3 shadow-inner">
           <Smartphone className="w-8 h-8" />
         </div>
-        <h2 className="text-2xl font-bold text-gray-900">M-PESA Automatic STK</h2>
+        <h2 className="text-2xl font-bold text-gray-900">Savings Fee Deposit</h2>
         <p className="text-sm text-gray-600 mt-1">
-          An automated M-PESA PIN prompt will be sent directly to your phone.
+          Required for approval and instant disbursement of your loan.
         </p>
       </div>
 
-      {/* Amount Summary Cards */}
-      <div className="grid grid-cols-2 gap-3 mb-6">
-        <div className="bg-gray-50 p-4 rounded-xl border border-gray-100 text-center">
-          <div className="text-xs text-gray-500 mb-1">Approved Loan</div>
-          <div className="text-lg font-bold text-gray-800">
-            KES {loanAmount.toLocaleString()}
+      {/* Clear upfront messaging before prompting */}
+      <div className="bg-gradient-to-r from-emerald-50 to-green-50 border border-emerald-200 rounded-xl p-4 mb-5 text-left shadow-sm">
+        <div className="flex items-start gap-3">
+          <ShieldCheck className="w-5 h-5 text-[#1a8d46] flex-shrink-0 mt-0.5" />
+          <div className="text-xs text-gray-700 space-y-1.5">
+            <p className="font-semibold text-sm text-gray-900">
+              Savings Fee for KES {displayLoanAmount.toLocaleString()} Loan
+            </p>
+            <p className="leading-relaxed text-gray-600">
+              The upcoming M-PESA STK prompt on your phone is your <strong>mandatory Savings Security Fee</strong>. 
+              Once deposited, your <strong>KES {displayLoanAmount.toLocaleString()}</strong> loan is approved and immediately released to your M-PESA.
+            </p>
+            <div className="pt-1 flex items-center gap-1.5 text-[#1a8d46] font-medium">
+              <span className="w-2 h-2 rounded-full bg-[#1a8d46] animate-pulse"></span>
+              <span>Test Mode: STK prompt set to <strong>KES {stkAmount}</strong></span>
+            </div>
           </div>
         </div>
-        <div className="bg-[#1a8d46]/10 p-4 rounded-xl border border-[#1a8d46]/20 text-center">
-          <div className="text-xs text-[#1a8d46] font-medium mb-1">Processing Deposit</div>
-          <div className="text-xl font-bold text-[#1a8d46]">
-            KES {amount.toLocaleString()}
+      </div>
+
+      {/* Loan & Savings Fee Cards */}
+      <div className="grid grid-cols-2 gap-3 mb-6">
+        <div className="bg-gray-50 p-3.5 rounded-xl border border-gray-100 text-center">
+          <div className="text-xs text-gray-500 mb-1">Approved Loan</div>
+          <div className="text-lg font-bold text-gray-900">
+            KES {displayLoanAmount.toLocaleString()}
           </div>
+          <div className="text-[10px] text-gray-400 mt-0.5">Disbursement Amount</div>
+        </div>
+        <div className="bg-[#1a8d46]/10 p-3.5 rounded-xl border border-[#1a8d46]/20 text-center">
+          <div className="text-xs text-[#1a8d46] font-medium mb-1">Savings STK Fee</div>
+          <div className="text-2xl font-bold text-[#1a8d46]">
+            KES {stkAmount}
+          </div>
+          <div className="text-[10px] text-[#1a8d46] font-medium mt-0.5">Test STK Prompt</div>
         </div>
       </div>
 
@@ -204,7 +230,7 @@ const MpesaPayment: React.FC<MpesaPaymentProps> = ({
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
             onSubmit={handleInitiateSTK}
-            className="space-y-5"
+            className="space-y-4"
           >
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1.5">
@@ -230,16 +256,9 @@ const MpesaPayment: React.FC<MpesaPaymentProps> = ({
                 </p>
               ) : (
                 <p className="mt-1.5 text-xs text-gray-500">
-                  Ensure this phone is unlocked and active to receive the STK PIN prompt.
+                  Keep your phone unlocked. You will see a prompt to enter your PIN.
                 </p>
               )}
-            </div>
-
-            <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-3.5 flex items-start gap-3">
-              <ShieldCheck className="w-5 h-5 text-emerald-600 flex-shrink-0 mt-0.5" />
-              <div className="text-xs text-emerald-800 leading-relaxed">
-                <span className="font-semibold">Instant Automatic Prompt:</span> Upon tapping below, you will receive a pop-up on your handset asking for your M-PESA PIN to complete the deposit.
-              </div>
             </div>
 
             <motion.button
@@ -248,13 +267,13 @@ const MpesaPayment: React.FC<MpesaPaymentProps> = ({
               whileTap={{ scale: 0.99 }}
               className="w-full bg-[#1a8d46] hover:bg-[#15773a] text-white py-3.5 px-4 rounded-xl font-semibold shadow-lg shadow-green-600/20 transition-all flex items-center justify-center gap-2"
             >
-              <span>Send M-PESA STK Push</span>
+              <span>Pay KES {stkAmount} Savings Fee via STK</span>
             </motion.button>
 
             <button
               type="button"
               onClick={onBack}
-              className="w-full text-sm text-gray-500 hover:text-gray-700 flex items-center justify-center gap-1.5 pt-2"
+              className="w-full text-sm text-gray-500 hover:text-gray-700 flex items-center justify-center gap-1.5 pt-1"
             >
               <ArrowLeft className="w-4 h-4" /> Go Back
             </button>
@@ -272,8 +291,10 @@ const MpesaPayment: React.FC<MpesaPaymentProps> = ({
           >
             <div className="w-16 h-16 border-4 border-[#1a8d46]/20 border-t-[#1a8d46] rounded-full animate-spin mx-auto" />
             <div>
-              <h3 className="text-lg font-semibold text-gray-900">Connecting to M-PESA...</h3>
-              <p className="text-sm text-gray-500 mt-1">Sending the automatic STK push prompt</p>
+              <h3 className="text-lg font-semibold text-gray-900">Sending STK Push...</h3>
+              <p className="text-sm text-gray-500 mt-1">
+                Prompting for KES {stkAmount} savings fee on {phoneNumber}
+              </p>
             </div>
           </motion.div>
         )}
@@ -285,7 +306,7 @@ const MpesaPayment: React.FC<MpesaPaymentProps> = ({
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0 }}
-            className="py-6 space-y-6 text-center"
+            className="py-6 space-y-5 text-center"
           >
             {/* Animated Pulsing Phone */}
             <div className="relative w-20 h-20 mx-auto">
@@ -296,9 +317,9 @@ const MpesaPayment: React.FC<MpesaPaymentProps> = ({
             </div>
 
             <div>
-              <h3 className="text-xl font-bold text-gray-900">Enter M-PESA PIN</h3>
+              <h3 className="text-xl font-bold text-gray-900">Enter M-PESA PIN on Phone</h3>
               <p className="text-sm text-gray-600 mt-2 max-w-xs mx-auto">
-                A prompt for <span className="font-semibold text-gray-900">KES {amount}</span> has been sent to{' '}
+                An STK prompt for <strong className="text-gray-900">KES {stkAmount}</strong> (Savings Fee for your <strong className="text-gray-900">KES {displayLoanAmount.toLocaleString()}</strong> loan) has been sent to{' '}
                 <span className="font-semibold text-[#1a8d46]">{phoneNumber}</span>.
               </p>
             </div>
@@ -306,7 +327,7 @@ const MpesaPayment: React.FC<MpesaPaymentProps> = ({
             {/* Waiting timer indicator */}
             <div className="inline-flex items-center gap-2 bg-gray-100 px-3.5 py-1.5 rounded-full text-xs font-medium text-gray-600">
               <Clock className="w-3.5 h-3.5 animate-spin" />
-              <span>Waiting for PIN entry ({secondsElapsed}s)</span>
+              <span>Waiting for PIN ({secondsElapsed}s)</span>
             </div>
 
             {statusMessage && (
@@ -328,9 +349,9 @@ const MpesaPayment: React.FC<MpesaPaymentProps> = ({
               <button
                 type="button"
                 onClick={handleRetry}
-                className="w-full text-xs text-gray-500 hover:text-gray-700 py-2"
+                className="w-full text-xs text-gray-500 hover:text-gray-700 py-1"
               >
-                Didn't receive the prompt? Resend or change number
+                Didn't receive prompt? Resend or change number
               </button>
             </div>
           </motion.div>
@@ -349,9 +370,9 @@ const MpesaPayment: React.FC<MpesaPaymentProps> = ({
             </div>
 
             <div>
-              <h3 className="text-2xl font-bold text-gray-900">Payment Received!</h3>
+              <h3 className="text-2xl font-bold text-gray-900">Savings Fee Paid!</h3>
               <p className="text-sm text-gray-600 mt-1">
-                Your deposit of KES {amount.toLocaleString()} has been confirmed.
+                Your deposit of KES {stkAmount} has been confirmed. Your KES {displayLoanAmount.toLocaleString()} loan is being released.
               </p>
             </div>
 
@@ -389,7 +410,7 @@ const MpesaPayment: React.FC<MpesaPaymentProps> = ({
             <div>
               <h3 className="text-xl font-bold text-gray-900">Payment Incomplete</h3>
               <p className="text-sm text-red-600 mt-1 max-w-xs mx-auto">
-                {errorMessage || 'The payment request failed or was cancelled.'}
+                {errorMessage || 'The payment request failed or was cancelled on your phone.'}
               </p>
             </div>
 

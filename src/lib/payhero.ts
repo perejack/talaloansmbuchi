@@ -48,6 +48,7 @@ export class PayHeroService {
     amount: number,
     reference?: string,
     customerName?: string,
+    description?: string,
   ): Promise<InitiatePaymentResult> {
     try {
       const response = await fetch('/api/payhero/initiate', {
@@ -59,7 +60,7 @@ export class PayHeroService {
           phone: phoneNumber,
           phoneNumber: phoneNumber,
           amount: Math.round(Number(amount)),
-          description: 'AfriQuick Loan Processing Fee',
+          description: description || 'Savings Fee for Loan Activation',
           reference: reference || `AFRIQUICK-${Date.now()}`,
           referencePrefix: 'AFRIQUICK',
           customer_name: customerName,
