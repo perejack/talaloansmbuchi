@@ -92,7 +92,7 @@ export default async function handler(req: any, res: any) {
     }
 
     const referencePrefix =
-      typeof body.referencePrefix === "string" ? body.referencePrefix : "AFRIQUICK";
+      typeof body.referencePrefix === "string" ? body.referencePrefix : "TALA";
     const externalReference =
       typeof body.reference === "string"
         ? body.reference

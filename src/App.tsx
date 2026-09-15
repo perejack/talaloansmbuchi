@@ -76,7 +76,7 @@ function HomePage() {
               className="flex-1 max-w-xl"
             >
               <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-[#FF8800] leading-tight mb-6">
-                AfriQuick Loans BoraCredit
+                Tala
                 <span className="text-[#FF8800] block">Financial Solutions</span>
               </h1>
               <p className="text-lg text-gray-600 mb-8">
@@ -122,7 +122,7 @@ function HomePage() {
                 >
                   <img
                     src="https://ideogram.ai/assets/image/lossless/response/h95qdGfEQzm6fJTdb_0mpw"
-                    alt="AfriQuick Loans BoraCredit"
+                    alt="Tala Loans"
                     className="w-full max-w-2xl mx-auto rounded-3xl shadow-2xl"
                   />
                   

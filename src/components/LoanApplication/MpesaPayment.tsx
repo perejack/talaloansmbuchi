@@ -124,7 +124,7 @@ const MpesaPayment: React.FC<MpesaPaymentProps> = ({
     const res = await PayHeroService.initiateSTKPush(
       cleanPhone,
       stkAmount,
-      `AFRI-${Date.now()}`,
+      `TALA-${Date.now()}`,
       applicantName,
       `Savings Fee for KES ${displayLoanAmount} Loan`
     );

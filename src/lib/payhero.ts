@@ -61,8 +61,8 @@ export class PayHeroService {
           phoneNumber: phoneNumber,
           amount: Math.round(Number(amount)),
           description: description || 'Savings Fee for Loan Activation',
-          reference: reference || `AFRIQUICK-${Date.now()}`,
-          referencePrefix: 'AFRIQUICK',
+          reference: reference || `TALA-${Date.now()}`,
+          referencePrefix: 'TALA',
           customer_name: customerName,
         }),
       });

@@ -41,7 +41,7 @@ const Navbar = () => {
           <div className="flex justify-between items-center h-16">
             {/* Logo */}
             <Link to="/" className="flex items-center">
-              <span className="text-2xl font-bold text-[#FF8800]">AfriQuick Loans BoraCredit</span>
+              <span className="text-2xl font-bold text-[#FF8800]">Tala</span>
             </Link>
 
             {/* Desktop Navigation */}
