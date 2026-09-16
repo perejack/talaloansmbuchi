@@ -88,7 +88,7 @@ const LoanApplication: React.FC = () => {
       component: <MpesaPayment 
         onNext={nextStep} 
         onBack={prevStep} 
-        amount={10}
+        amount={savingsFee || 150}
         loanAmount={selectedAmount || 3000}
         initialPhone={applicantPhone}
         applicantName={applicantName}

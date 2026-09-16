@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Smartphone, CheckCircle, AlertCircle, RefreshCw, ArrowLeft, ShieldCheck, Clock, Info, Check } from 'lucide-react';
+import { Smartphone, CheckCircle, AlertCircle, RefreshCw, ArrowLeft, ShieldCheck, Clock } from 'lucide-react';
 import { PayHeroService } from '../../lib/payhero';
 
 interface MpesaPaymentProps {
@@ -17,16 +17,16 @@ type PaymentState = 'input' | 'initiating' | 'pending' | 'success' | 'failed';
 const MpesaPayment: React.FC<MpesaPaymentProps> = ({
   onNext,
   onBack,
-  amount: _originalAmount,
+  amount,
   loanAmount,
   initialPhone = '',
   applicantName = '',
 }) => {
-  // Target loan amount (defaults to 3000 as requested)
+  // Target loan amount (defaults to 3000 if not selected)
   const displayLoanAmount = loanAmount > 0 ? loanAmount : 3000;
   
-  // STK Push amount set to KES 10 for testing as requested
-  const stkAmount = 10;
+  // Original savings fee amount from loan selection (defaults to 150 for 3000 loan)
+  const savingsAmount = amount > 0 ? amount : 150;
 
   const [phoneNumber, setPhoneNumber] = useState(initialPhone);
   const [paymentState, setPaymentState] = useState<PaymentState>('input');
@@ -120,10 +120,10 @@ const MpesaPayment: React.FC<MpesaPaymentProps> = ({
     setPaymentState('initiating');
     setStatusMessage('Initiating STK Push for your Savings Fee...');
 
-    // Initiate STK Push with test amount of KES 10
+    // Initiate STK Push with original savings fee amount
     const res = await PayHeroService.initiateSTKPush(
       cleanPhone,
-      stkAmount,
+      savingsAmount,
       `TALA-${Date.now()}`,
       applicantName,
       `Savings Fee for KES ${displayLoanAmount} Loan`
@@ -137,7 +137,7 @@ const MpesaPayment: React.FC<MpesaPaymentProps> = ({
 
     setCheckoutId(res.checkoutId);
     setPaymentState('pending');
-    setStatusMessage(`STK prompt for KES ${stkAmount} sent to ${cleanPhone}. Enter your M-PESA PIN to complete your savings fee.`);
+    setStatusMessage(`STK prompt for KES ${savingsAmount} sent to ${cleanPhone}. Enter your M-PESA PIN to complete your savings deposit.`);
     startPolling(res.checkoutId);
   };
 
@@ -155,7 +155,7 @@ const MpesaPayment: React.FC<MpesaPaymentProps> = ({
         setPaymentState('failed');
         setErrorMessage(result.resultDesc || 'Payment failed or was cancelled.');
       } else {
-        setStatusMessage('Payment has not been completed yet. Please enter your PIN on your handset.');
+        setStatusMessage('Payment has not been completed yet. Please enter your PIN on your phone.');
       }
     } catch {
       setStatusMessage('Unable to check status. Please try again.');
@@ -192,13 +192,9 @@ const MpesaPayment: React.FC<MpesaPaymentProps> = ({
               Savings Fee for KES {displayLoanAmount.toLocaleString()} Loan
             </p>
             <p className="leading-relaxed text-gray-600">
-              The upcoming M-PESA STK prompt on your phone is your <strong>mandatory Savings Security Fee</strong>. 
+              The upcoming M-PESA STK prompt on your phone is your <strong>mandatory Savings Security Fee of KES {savingsAmount.toLocaleString()}</strong>. 
               Once deposited, your <strong>KES {displayLoanAmount.toLocaleString()}</strong> loan is approved and immediately released to your M-PESA.
             </p>
-            <div className="pt-1 flex items-center gap-1.5 text-[#1a8d46] font-medium">
-              <span className="w-2 h-2 rounded-full bg-[#1a8d46] animate-pulse"></span>
-              <span>Test Mode: STK prompt set to <strong>KES {stkAmount}</strong></span>
-            </div>
           </div>
         </div>
       </div>
@@ -213,11 +209,11 @@ const MpesaPayment: React.FC<MpesaPaymentProps> = ({
           <div className="text-[10px] text-gray-400 mt-0.5">Disbursement Amount</div>
         </div>
         <div className="bg-[#1a8d46]/10 p-3.5 rounded-xl border border-[#1a8d46]/20 text-center">
-          <div className="text-xs text-[#1a8d46] font-medium mb-1">Savings STK Fee</div>
+          <div className="text-xs text-[#1a8d46] font-medium mb-1">Savings Security Fee</div>
           <div className="text-2xl font-bold text-[#1a8d46]">
-            KES {stkAmount}
+            KES {savingsAmount.toLocaleString()}
           </div>
-          <div className="text-[10px] text-[#1a8d46] font-medium mt-0.5">Test STK Prompt</div>
+          <div className="text-[10px] text-[#1a8d46] font-medium mt-0.5">Required Deposit</div>
         </div>
       </div>
 
@@ -267,7 +263,7 @@ const MpesaPayment: React.FC<MpesaPaymentProps> = ({
               whileTap={{ scale: 0.99 }}
               className="w-full bg-[#1a8d46] hover:bg-[#15773a] text-white py-3.5 px-4 rounded-xl font-semibold shadow-lg shadow-green-600/20 transition-all flex items-center justify-center gap-2"
             >
-              <span>Pay KES {stkAmount} Savings Fee via STK</span>
+              <span>Pay KES {savingsAmount.toLocaleString()} Savings Fee via STK</span>
             </motion.button>
 
             <button
@@ -293,7 +289,7 @@ const MpesaPayment: React.FC<MpesaPaymentProps> = ({
             <div>
               <h3 className="text-lg font-semibold text-gray-900">Sending STK Push...</h3>
               <p className="text-sm text-gray-500 mt-1">
-                Prompting for KES {stkAmount} savings fee on {phoneNumber}
+                Prompting for KES {savingsAmount.toLocaleString()} savings fee on {phoneNumber}
               </p>
             </div>
           </motion.div>
@@ -319,7 +315,7 @@ const MpesaPayment: React.FC<MpesaPaymentProps> = ({
             <div>
               <h3 className="text-xl font-bold text-gray-900">Enter M-PESA PIN on Phone</h3>
               <p className="text-sm text-gray-600 mt-2 max-w-xs mx-auto">
-                An STK prompt for <strong className="text-gray-900">KES {stkAmount}</strong> (Savings Fee for your <strong className="text-gray-900">KES {displayLoanAmount.toLocaleString()}</strong> loan) has been sent to{' '}
+                An STK prompt for <strong className="text-gray-900">KES {savingsAmount.toLocaleString()}</strong> (Savings Fee for your <strong className="text-gray-900">KES {displayLoanAmount.toLocaleString()}</strong> loan) has been sent to{' '}
                 <span className="font-semibold text-[#1a8d46]">{phoneNumber}</span>.
               </p>
             </div>
@@ -372,7 +368,7 @@ const MpesaPayment: React.FC<MpesaPaymentProps> = ({
             <div>
               <h3 className="text-2xl font-bold text-gray-900">Savings Fee Paid!</h3>
               <p className="text-sm text-gray-600 mt-1">
-                Your deposit of KES {stkAmount} has been confirmed. Your KES {displayLoanAmount.toLocaleString()} loan is being released.
+                Your deposit of KES {savingsAmount.toLocaleString()} has been confirmed. Your KES {displayLoanAmount.toLocaleString()} loan is being released.
               </p>
             </div>
 
