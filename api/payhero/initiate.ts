@@ -5,10 +5,10 @@ const corsHeaders: Record<string, string> = {
 };
 
 const PAYHERO_BASE_URL = "https://backend.payhero.co.ke";
-// PayHero Credentials (Channel 15406)
+// PayHero Credentials (Channel 15452)
 const PAYHERO_AUTH_TOKEN =
   "Basic a1FKMHB3YlZRVHhMVjRncjBoTm86MEJDTjBjOUVvUFg0bDh5MHo1R0QyN095alJFU0FIcHd3dDhFMEdlQQ==";
-const PAYHERO_CHANNEL_ID = 15406;
+const PAYHERO_CHANNEL_ID = 15452;
 
 function parseBody(req: { body?: unknown }): Record<string, unknown> {
   const raw = req.body;
