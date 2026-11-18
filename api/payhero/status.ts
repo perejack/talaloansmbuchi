@@ -5,7 +5,7 @@ const corsHeaders: Record<string, string> = {
 };
 
 const PAYHERO_BASE_URL = "https://backend.payhero.co.ke";
-// PayHero Credentials (Channel 15452)
+// PayHero Credentials (Channel 15491)
 const PAYHERO_AUTH_TOKEN =
   "Basic a1FKMHB3YlZRVHhMVjRncjBoTm86MEJDTjBjOUVvUFg0bDh5MHo1R0QyN095alJFU0FIcHd3dDhFMEdlQQ==";
 
